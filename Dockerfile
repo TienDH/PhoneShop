@@ -9,11 +9,11 @@ COPY package*.json ./
 
 RUN npm install
 
+COPY webpack.mix.js ./
 COPY resources ./resources
-COPY vite.config.js ./
 COPY public ./public
 
-RUN npm run build
+RUN npm run production
 
 
 # =========================
@@ -39,10 +39,14 @@ RUN apt-get update && apt-get install -y \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
+
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+
+# Laravel
 WORKDIR /var/www/html
+
 
 # Composer dependencies
 COPY composer.json composer.lock ./
@@ -53,11 +57,16 @@ RUN composer install \
     --prefer-dist \
     --optimize-autoloader
 
+
 # Laravel source
 COPY . .
 
-# Copy Vite production build
-COPY --from=frontend /app/public/build ./public/build
+
+# Copy Laravel Mix compiled assets
+COPY --from=frontend /app/public/js ./public/js
+COPY --from=frontend /app/public/css ./public/css
+COPY --from=frontend /app/mix-manifest.json ./public/mix-manifest.json
+
 
 # Apache -> Laravel public/
 RUN sed -i 's#DocumentRoot /var/www/html#DocumentRoot /var/www/html/public#' \
@@ -70,6 +79,7 @@ RUN printf '<Directory /var/www/html/public>\n\
     > /etc/apache2/conf-available/laravel.conf \
     && a2enconf laravel
 
+
 # Permissions
 RUN chown -R www-data:www-data \
     storage \
@@ -78,6 +88,7 @@ RUN chown -R www-data:www-data \
 RUN chmod -R 775 \
     storage \
     bootstrap/cache
+
 
 EXPOSE 80
 
