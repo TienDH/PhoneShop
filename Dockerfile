@@ -51,16 +51,13 @@ WORKDIR /var/www/html
 
 # Composer dependencies
 COPY composer.json composer.lock ./
+COPY . .
 
 RUN composer install \
     --no-dev \
     --no-interaction \
     --prefer-dist \
     --optimize-autoloader
-
-
-# Laravel source
-COPY . .
 
 
 # Copy Laravel Mix compiled assets
