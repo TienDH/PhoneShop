@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     libxml2-dev \
+    libonig-dev \
     && docker-php-ext-install \
         pdo_mysql \
         mbstring \
