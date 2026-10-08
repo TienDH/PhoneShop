@@ -63,7 +63,7 @@ RUN composer install \
 # Copy Laravel Mix compiled assets
 COPY --from=frontend /app/public/js ./public/js
 COPY --from=frontend /app/public/css ./public/css
-COPY --from=frontend /app/mix-manifest.json ./public/mix-manifest.json
+COPY --from=frontend /app/public/mix-manifest.json ./public/mix-manifest.json
 
 
 # Apache -> Laravel public/
@@ -90,4 +90,7 @@ RUN chmod -R 775 \
 
 EXPOSE 80
 
-CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --class=AdminUserSeeder --force && apache2-foreground"]
+COPY docker/start.sh /usr/local/bin/phoneshop-start
+RUN sed -i 's/\r$//' /usr/local/bin/phoneshop-start && chmod +x /usr/local/bin/phoneshop-start
+
+CMD ["phoneshop-start"]

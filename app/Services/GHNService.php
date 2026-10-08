@@ -143,8 +143,14 @@ class GHNService
             if ($response->successful()) {
                 return $response->json('data') ?? [];
             }
+            Log::warning('[GHN] available-services failed', [
+                'http_status' => $response->status(), 'api_code' => $response->json('code'),
+                'message' => mb_substr((string) $response->json('message'), 0, 400),
+                'to_district_id' => $toDistrictId,
+            ]);
             return [];
         } catch (\Throwable $e) {
+            Log::error('[GHN] available-services connection failed', ['message' => $e->getMessage()]);
             return [];
         }
     }

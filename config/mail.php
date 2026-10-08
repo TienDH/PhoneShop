@@ -41,7 +41,7 @@ return [
             'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            'timeout' => 15,
             'auth_mode' => null,
         ],
 
@@ -51,6 +51,7 @@ return [
 
         'mailgun' => [
             'transport' => 'mailgun',
+            'guzzle' => ['connect_timeout' => 5, 'timeout' => 15],
         ],
 
         'postmark' => [

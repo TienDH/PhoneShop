@@ -54,6 +54,10 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'on_render' => (bool) env('RENDER', false),
+    'trusted_proxies' => env('TRUSTED_PROXIES', env('RENDER', false) ? '*' : null),
+    'integration_diagnostics' => (bool) env('INTEGRATION_DIAGNOSTICS', false),
+
     'asset_url' => env('ASSET_URL', null),
 
     /*

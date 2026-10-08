@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\PaymentTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -87,6 +88,15 @@ class MomoService
         $valid = $response->successful() && ($result['resultCode'] ?? -1) == 0 && $validUrl
             && ($result['orderId'] ?? null) === $data['orderId']
             && ($result['requestId'] ?? null) === $data['requestId'];
+        if (!$valid) {
+            Log::warning('[MoMo] create payment failed', [
+                'order_id' => $order->id, 'http_status' => $response->status(),
+                'result_code' => $result['resultCode'] ?? null,
+                'message' => mb_substr(str_replace(array_filter([
+                    config('services.momo.access_key'), config('services.momo.secret_key'),
+                ]), '[redacted]', (string) ($result['message'] ?? '')), 0, 400),
+            ]);
+        }
         // An IPN may arrive before the create request returns; never overwrite a settled transaction.
         PaymentTransaction::whereKey($transaction->id)->where('status', 'pending')->update([
             'response_payload' => json_encode($result),
