@@ -8,7 +8,7 @@
 - An unsigned MoMo callback returns 400 as expected. It is not a valid payment test.
 - No production order, shipment or payment was created during these checks.
 
-The proxy fix and the other changes in this working tree are NOT deployed yet.
+These observations describe the site before the HTTPS proxy fix. Redeploy the current source and verify the running service after updating its configuration.
 
 ## Render Environment
 
@@ -39,18 +39,25 @@ The startup script clears old config/views, runs additive migrations, creates th
 
 Render Free blocks outbound SMTP ports 25, 465 and 587. Gmail SMTP on port 587 will not work there even with a correct App Password. Use a mail provider's HTTPS API, or a paid instance that permits SMTP.
 
-Laravel 8 in this project already includes the Mailgun API transport and Guzzle. No new package is needed for that option:
+This project includes a Brevo HTTPS API transport compatible with Laravel 8 / SwiftMailer. It sends the existing registration verification, resend and password-reset notifications without changing their signed links or tokens. No additional package is needed.
 
 ```dotenv
-MAIL_MAILER=mailgun
-MAILGUN_DOMAIN=YOUR_VERIFIED_MAILGUN_DOMAIN
-MAILGUN_SECRET=YOUR_MAILGUN_API_KEY
-MAILGUN_ENDPOINT=api.mailgun.net
+MAIL_MAILER=brevo
+BREVO_API_KEY=YOUR_BREVO_API_KEY
 MAIL_FROM_ADDRESS=YOUR_VERIFIED_SENDER_ADDRESS
 MAIL_FROM_NAME="TDH Phone"
 ```
 
-Use `api.eu.mailgun.net` for a Mailgun EU domain. Mailgun sandbox domains only deliver to authorized recipients. Never use `MAIL_MAILER=log` as proof of delivery: that driver writes messages to logs instead of sending them. No email API credentials have been supplied or configured on Render by this task.
+1. In Brevo, enable transactional email for your account and create an **API key** under SMTP & API. An SMTP key/password is not an API key.
+2. Add and verify the exact sender used in `MAIL_FROM_ADDRESS`. Prefer a domain you own and authenticate it in Brevo for production; you cannot authenticate a public domain such as `gmail.com`.
+3. Add the four variables above to Render and redeploy. Keep `APP_URL` set to your public HTTPS URL and `QUEUE_CONNECTION=sync` unless a separate queue worker is running.
+4. Test registration, resend and forgotten password with an inbox you control. Inspect Brevo's transactional logs for accepted, delivered, blocked or bounced messages; an API `messageId` means accepted, not guaranteed inbox delivery.
+
+`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION` and `MAILGUN_*` are not used by the Brevo mailer. Keep the API key only in Render Environment or your private local `.env`, never in Git. Do not disable TLS certificate verification. Requests have bounded timeouts, do not follow redirects, and are not automatically retried because a timed-out request may already have been accepted.
+
+HTTP 401: check the API key. HTTP 403: check account activation, permissions and any authorized-IP restrictions in Brevo. HTTP 400: check the sender and message validity. HTTP 429: check quota/rate limits. Render logs include the status but not provider response bodies, API keys or email content. Connection failures and missing message IDs require checking Brevo logs before resending.
+
+The transport preserves HTML/plain text alternatives, To/CC/BCC, one Reply-To and regular file attachments. Inline CID attachments are explicitly rejected; the current auth notifications do not use them. Existing SMTP, Mailgun and other mailers remain available. Never use `MAIL_MAILER=log` as proof of delivery: that driver writes messages to logs instead of sending them. No real Brevo credentials or sender have been configured or tested by these code changes.
 
 ## MoMo
 
@@ -84,7 +91,7 @@ For production use `https://online-gateway.ghn.vn/shiip/public-api` with a produ
 
 ## Redeploy and Verify
 
-1. Commit/push the reviewed source changes to the branch used by Render. These steps have not been executed by this task.
+1. Commit/push the reviewed source changes to the branch used by Render.
 2. Set the environment variables in Render and choose Save, rebuild, and deploy. Saving without deploying does not update the running container.
 3. Check deploy logs for the `integrations:check` table; it prints missing variable names, never secret values. Free services do not provide dashboard/SSH shell access, which is why startup diagnostics are available.
 4. Open `/login`. Its action must be `https://phoneshop-bwkm.onrender.com/login`; then test login and session retention.
@@ -98,7 +105,7 @@ On local or a paid service with shell access, configuration checks and optional 
 php artisan integrations:check
 php artisan integrations:check --probe-ghn
 php artisan integrations:check --probe-ghn --district=YOUR_DISTRICT --ward=YOUR_WARD
-php artisan test --filter='RenderDeploymentTest|CheckoutOrdersTest|MomoPaymentTest|StoreManagementTest|ProductVariantsTest'
+php artisan test --filter='BrevoMailTest|RenderDeploymentTest|CheckoutOrdersTest|MomoPaymentTest|StoreManagementTest|ProductVariantsTest'
 ```
 
 Uploaded files in Render's local filesystem are ephemeral even though Aiven database records persist. Use external object storage or a paid persistent disk before storing real product uploads.
@@ -109,5 +116,7 @@ Uploaded files in Render's local filesystem are ephemeral even though Aiven data
 - [Render environment variables](https://render.com/docs/configure-environment-variables)
 - [Laravel 8 trusted proxies](https://laravel.com/docs/8.x/requests#configuring-trusted-proxies)
 - [Laravel 8 API mail drivers](https://laravel.com/docs/8.x/mail#driver-prerequisites)
+- [Brevo transactional email API](https://developers.brevo.com/reference/send-transac-email)
+- [Brevo domain authentication](https://help.brevo.com/hc/en-us/articles/12163873383186-Authenticate-your-domain-with-Brevo-Brevo-code-DKIM-DMARC)
 - [MoMo payment notifications](https://developers.momo.vn/v3/vi/docs/payment/api/result-handling/notification/)
 - [GHN shipment creation](https://developer.ghn.vn/vi/docs/order/create)

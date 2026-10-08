@@ -109,4 +109,31 @@ class RenderDeploymentTest extends StoreTestCase
         $this->assertStringNotContainsString('DO_NOT_PRINT_MAILGUN', Artisan::output());
         Http::assertNothingSent();
     }
+
+    public function test_valid_brevo_configuration_passes_without_sending_email_or_printing_key()
+    {
+        $this->withoutMockingConsoleOutput();
+        config([
+            'app.on_render' => true, 'app.url' => 'https://phoneshop-bwkm.onrender.com', 'app.trusted_proxies' => '*',
+            'session.secure' => true, 'mail.default' => 'brevo', 'mail.from.address' => 'store@tdhphone.vn',
+            'services.brevo.key' => 'DO_NOT_PRINT_BREVO', 'ghn.token' => 'DO_NOT_PRINT_TOKEN',
+            'ghn.shop_id' => 1, 'ghn.from_district_id' => 1,
+        ]);
+        $this->assertSame(0, Artisan::call('integrations:check'));
+        $output = Artisan::output();
+        $this->assertStringContainsString('Brevo uses HTTPS', $output);
+        $this->assertStringNotContainsString('DO_NOT_PRINT_BREVO', $output);
+        Http::assertNothingSent();
+    }
+
+    public function test_brevo_diagnostics_identify_missing_api_key_and_sender()
+    {
+        $this->withoutMockingConsoleOutput();
+        config(['mail.default' => 'brevo', 'services.brevo.key' => '  ', 'mail.from.address' => 'hello@example.com']);
+        $this->assertSame(1, Artisan::call('integrations:check'));
+        $output = Artisan::output();
+        $this->assertStringContainsString('BREVO_API_KEY', $output);
+        $this->assertStringContainsString('MAIL_FROM_ADDRESS', $output);
+        Http::assertNothingSent();
+    }
 }

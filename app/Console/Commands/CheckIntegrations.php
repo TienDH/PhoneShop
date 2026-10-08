@@ -38,6 +38,9 @@ class CheckIntegrations extends Command
             $add('Mail', 'FAIL', 'Render Free blocks SMTP ports 25/465/587. Use an HTTPS mail API or a paid instance.');
         } elseif (in_array($mailer, ['log', 'array'], true)) {
             $add('Mail', 'FAIL', 'MAIL_MAILER=' . $mailer . ' does not deliver email.');
+        } elseif ($mailer === 'brevo') {
+            $this->required($add, 'Mail', ['BREVO_API_KEY' => trim((string) config('services.brevo.key'))]);
+            $add('Mail', 'INFO', 'Brevo uses HTTPS; verify the sender and activate transactional email in Brevo. Delivery has not been tested.');
         } elseif ($mailer === 'mailgun') {
             $this->required($add, 'Mail', ['MAILGUN_DOMAIN' => config('services.mailgun.domain'), 'MAILGUN_SECRET' => config('services.mailgun.secret')]);
             $add('Mail', 'INFO', 'Mailgun uses HTTPS; sender/domain and sandbox recipients must be verified with Mailgun.');

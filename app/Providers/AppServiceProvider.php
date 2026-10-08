@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Mail\Transport\BrevoTransport;
+use Illuminate\Mail\MailManager;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -13,7 +15,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->afterResolving('mail.manager', function (MailManager $manager) {
+            $manager->extend('brevo', function () {
+                return new BrevoTransport((string) config('services.brevo.key'));
+            });
+        });
     }
 
     /**

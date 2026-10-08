@@ -28,12 +28,16 @@ return [
     | sending an e-mail. You will specify which one you are using for your
     | mailers below. You are free to add additional mailers as required.
     |
-    | Supported: "smtp", "sendmail", "mailgun", "ses",
+    | Supported: "smtp", "sendmail", "brevo", "mailgun", "ses",
     |            "postmark", "log", "array", "failover"
     |
     */
 
     'mailers' => [
+        'brevo' => [
+            'transport' => 'brevo',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'host' => env('MAIL_HOST', 'smtp.mailgun.org'),

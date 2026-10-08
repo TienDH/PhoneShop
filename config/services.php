@@ -30,6 +30,10 @@ return [
     |
     */
 
+    'brevo' => [
+        'key' => env('BREVO_API_KEY', ''),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
