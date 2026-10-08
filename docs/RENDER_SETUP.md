@@ -28,12 +28,35 @@ SESSION_SAME_SITE=lax
 QUEUE_CONNECTION=sync
 INTEGRATION_DIAGNOSTICS=true
 SEED_ADMIN_ON_DEPLOY=false
+SEED_USER_ON_DEPLOY=false
 ```
 
 Keep the existing `APP_KEY` stable across deployments. Do not regenerate it at startup.
 Cookie sessions can exceed browser size limits with large carts. Database sessions are preferable for persistent production carts, but require a sessions-table migration before enabling them. File sessions disappear when Render restarts.
 
 The startup script clears old config/views, runs additive migrations, creates the storage link, and optionally prints configuration diagnostics. It does NOT run `migrate:fresh`, reset data, or seed the known demo admin password on every restart. An existing admin account is not changed. Rotate the demo password before using real customer data.
+
+## Demo customer login
+
+`UsersSeeder` creates one customer with `role=user` and a pre-verified email so the demo account can log in without sending a verification email. It never changes an existing account's password, role, profile or verification status. Normal customer registration still requires email verification.
+
+For local/testing, the default email is `user@phoneshop.com` and the default password is `12345678`. Create only this account with:
+
+```sh
+php artisan db:seed --class=UsersSeeder
+```
+
+On Render, add these variables and redeploy the source containing this seeder:
+
+```dotenv
+SEED_USER_ON_DEPLOY=true
+SEED_USER_EMAIL=user@phoneshop.com
+SEED_USER_PASSWORD=YOUR_PRIVATE_PASSWORD_AT_LEAST_8_CHARACTERS
+```
+
+Log in using `SEED_USER_EMAIL` and the private password you set. Production and other non-local environments reject a missing password, a password shorter than 8 characters, or the local demo password `12345678`. After the first successful deployment, set `SEED_USER_ON_DEPLOY=false` and remove `SEED_USER_PASSWORD` from Render; the saved account remains available. Change its password from the account page when appropriate. Do not put the private password in Git or chat.
+
+Do not run the entire `DatabaseSeeder` against an existing deployment just to create a customer: it also runs the other demo data seeders, including `AdminUserSeeder`. Use only `UsersSeeder` or the opt-in startup flag above. If the configured email already exists, log in with that account's current password or choose a different demo email; seeding does not reset it.
 
 ## Email on Free instances
 
@@ -105,7 +128,7 @@ On local or a paid service with shell access, configuration checks and optional 
 php artisan integrations:check
 php artisan integrations:check --probe-ghn
 php artisan integrations:check --probe-ghn --district=YOUR_DISTRICT --ward=YOUR_WARD
-php artisan test --filter='BrevoMailTest|RenderDeploymentTest|CheckoutOrdersTest|MomoPaymentTest|StoreManagementTest|ProductVariantsTest'
+php artisan test --filter='UsersSeederTest|BrevoMailTest|RenderDeploymentTest|CheckoutOrdersTest|MomoPaymentTest|StoreManagementTest|ProductVariantsTest'
 ```
 
 Uploaded files in Render's local filesystem are ephemeral even though Aiven database records persist. Use external object storage or a paid persistent disk before storing real product uploads.

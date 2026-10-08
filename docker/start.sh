@@ -13,6 +13,10 @@ if [ "${SEED_ADMIN_ON_DEPLOY:-false}" = "true" ]; then
     php artisan db:seed --class=AdminUserSeeder --force
 fi
 
+if [ "${SEED_USER_ON_DEPLOY:-false}" = "true" ]; then
+    php artisan db:seed --class=UsersSeeder --force
+fi
+
 if [ "${INTEGRATION_DIAGNOSTICS:-false}" = "true" ]; then
     php artisan integrations:check || true
 fi
